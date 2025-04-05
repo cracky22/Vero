@@ -3,53 +3,63 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Videokonferenz</title>
+  <title>Webcam Upload & Anzeige</title>
   <style>
-    body, html {
+    body {
       margin: 0;
-      padding: 0;
       background: #000;
-      overflow: hidden;
-    }
-
-    #remote {
-      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
       height: 100vh;
-      object-fit: cover;
     }
-
-    #local {
-      position: absolute;
-      top: 20px;
-      left: 20px;
+    #remote {
+      width: 80vw;
+      height: auto;
+      border: 2px solid #fff;
+    }
+    #localVideo {
       width: 200px;
-      height: 150px;
-      border: 2px solid white;
-      object-fit: cover;
-      z-index: 10;
+      border: 2px solid #ccc;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
-  <!-- Laptop Stream (remote) -->
+  <!-- Remote-Video vom Server -->
   <img id="remote" src="{{ url_for('laptop_feed') }}" alt="Remote Video" />
 
-  <!-- Handy-Kamera (lokal) -->
-  <video id="local" autoplay muted playsinline></video>
+  <!-- Lokales Video, wird an den Server gesendet -->
+  <video id="localVideo" autoplay muted playsinline></video>
 
   <script>
-    const video = document.getElementById('local');
+    const video = document.getElementById('localVideo');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
 
-    async function startCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        video.srcObject = stream;
-      } catch (e) {
-        alert('Kamerazugriff nicht möglich: ' + e);
-      }
+    async function start() {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+
+      const fps = 35;
+      setInterval(() => {
+        const width = video.videoWidth;
+        const height = video.videoHeight;
+        if (width && height) {
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(video, 0, 0, width, height);
+          canvas.toBlob(blob => {
+            const formData = new FormData();
+            formData.append('frame', blob, 'frame.jpg');
+            fetch('/upload_laptop', { method: 'POST', body: formData });
+          }, 'image/jpeg');
+        }
+      }, 1000 / fps);
     }
 
-    startCamera();
+    start();
   </script>
 </body>
 </html>
