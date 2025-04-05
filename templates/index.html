@@ -3,38 +3,37 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Webcam Upload & Anzeige</title>
+  <title>Phone-Konferenz</title>
   <style>
     body {
       margin: 0;
       background: #000;
       display: flex;
-      justify-content: center;
-      align-items: center;
       flex-direction: column;
+      align-items: center;
       height: 100vh;
     }
     #remote {
-      width: 80vw;
-      height: auto;
-      border: 2px solid #fff;
+      width: 100%;
+      max-width: 100%;
+      border-bottom: 2px solid white;
     }
-    #localVideo {
+    #local {
       width: 200px;
-      border: 2px solid #ccc;
       margin-top: 10px;
+      border: 2px solid #ccc;
     }
   </style>
 </head>
 <body>
-  <!-- Remote-Video vom Server -->
-  <img id="remote" src="{{ url_for('laptop_feed') }}" alt="Remote Video" />
+  <!-- Empfang des Laptop-Streams -->
+  <img id="remote" src="{{ url_for('laptop_feed') }}" alt="Laptop-Stream" />
 
-  <!-- Lokales Video, wird an den Server gesendet -->
-  <video id="localVideo" autoplay muted playsinline></video>
+  <!-- Lokaler Kamera-Stream (Phone) -->
+  <video id="local" autoplay muted playsinline></video>
 
   <script>
-    const video = document.getElementById('localVideo');
+    const video = document.getElementById('local');
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
@@ -43,6 +42,7 @@
       video.srcObject = stream;
 
       const fps = 35;
+
       setInterval(() => {
         const width = video.videoWidth;
         const height = video.videoHeight;
@@ -53,7 +53,7 @@
           canvas.toBlob(blob => {
             const formData = new FormData();
             formData.append('frame', blob, 'frame.jpg');
-            fetch('/upload_laptop', { method: 'POST', body: formData });
+            fetch('/upload_phone', { method: 'POST', body: formData });
           }, 'image/jpeg');
         }
       }, 1000 / fps);

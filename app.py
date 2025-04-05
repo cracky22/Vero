@@ -3,8 +3,12 @@ from threading import Lock
 import time
 
 app = Flask(__name__)
+
+# Speicher für beide Streams
 laptop_frame = None
-frame_lock = Lock()
+phone_frame = None
+laptop_lock = Lock()
+phone_lock = Lock()
 
 @app.route('/')
 def index():
@@ -14,23 +18,35 @@ def index():
 def upload_laptop():
     global laptop_frame
     file = request.files['frame']
-    with frame_lock:
+    with laptop_lock:
         laptop_frame = file.read()
     return "OK", 200
 
-def generate_laptop_stream():
-    global laptop_frame
+@app.route('/upload_phone', methods=['POST'])
+def upload_phone():
+    global phone_frame
+    file = request.files['frame']
+    with phone_lock:
+        phone_frame = file.read()
+    return "OK", 200
+
+def generate_stream(get_frame_func, lock):
     while True:
-        with frame_lock:
-            frame = laptop_frame
+        with lock:
+            frame = get_frame_func()
         if frame:
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-        time.sleep(1 / 35)  # Begrenze auf 35+ fps
+        time.sleep(1 / 35)  # Ziel: 35 FPS
 
 @app.route('/laptop_feed')
 def laptop_feed():
-    return Response(generate_laptop_stream(),
+    return Response(generate_stream(lambda: laptop_frame, laptop_lock),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/phone_feed')
+def phone_feed():
+    return Response(generate_stream(lambda: phone_frame, phone_lock),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
