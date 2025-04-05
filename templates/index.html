@@ -1,59 +1,55 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Videokonferenz</title>
-    <style>
-        /* Stil für das Layout */
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Videokonferenz</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      overflow: hidden;
+    }
 
-        .container {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            width: 80%;
-            height: 80%;
-        }
+    #remote {
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+    }
 
-        .video {
-            width: 70%;
-            height: 100%;
-            background-color: #000;
-        }
-
-        .self-view {
-            width: 25%;
-            height: 30%;
-            background-color: #000;
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            border: 2px solid white;
-        }
-    </style>
+    #local {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 200px;
+      height: 150px;
+      border: 2px solid white;
+      object-fit: cover;
+      z-index: 10;
+    }
+  </style>
 </head>
 <body>
+  <!-- Laptop Stream (remote) -->
+  <img id="remote" src="{{ url_for('laptop_feed') }}" alt="Remote Video" />
 
-    <div class="container">
-        <div class="video">
-            <!-- Hier wird das Video des anderen Teilnehmers angezeigt (dieser Stream kann ersetzt werden) -->
-            <h3>Anderer Teilnehmer</h3>
-            <img src="https://via.placeholder.com/640x480" alt="Anderer Teilnehmer" style="width: 100%; height: 100%; background-color: #333;">
-        </div>
-        <div class="self-view">
-            <!-- Hier wird dein eigenes Kamera-Bild angezeigt -->
-            <h3>Dein Video</h3>
-            <img src="{{ url_for('video_feed') }}" alt="Deine Kamera" style="width: 100%; height: 100%; object-fit: cover;">
-        </div>
-    </div>
+  <!-- Handy-Kamera (lokal) -->
+  <video id="local" autoplay muted playsinline></video>
 
+  <script>
+    const video = document.getElementById('local');
+
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        video.srcObject = stream;
+      } catch (e) {
+        alert('Kamerazugriff nicht möglich: ' + e);
+      }
+    }
+
+    startCamera();
+  </script>
 </body>
 </html>
