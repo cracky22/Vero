@@ -1,28 +1,35 @@
-from flask import Flask, render_template, Response, request
+from flask import Flask, render_template, Response
 import cv2
-import base64
 
 app = Flask(__name__)
-latest_frame = None
+
+# Initialisiere die Kamera
+cap = cv2.VideoCapture(0)
+
+def generate_frame():
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        
+        # Bild in RGB umwandeln
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+        # Bild in JPEG komprimieren
+        _, jpeg = cv2.imencode('.jpg', frame)
+        frame_bytes = jpeg.tobytes()
+        
+        # Sende das Bild als HTTP-Response (Video-Stream)
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/upload', methods=['POST'])
-def upload():
-    global latest_frame
-    data_url = request.form['frame']
-    header, encoded = data_url.split(',', 1)
-    latest_frame = base64.b64decode(encoded)
-    return '', 204
-
-@app.route('/frame')
-def frame():
-    global latest_frame
-    if latest_frame:
-        return Response(latest_frame, mimetype='image/jpeg')
-    return '', 204
+@app.route('/video_feed')
+def video_feed():
+    return Response(generate_frame(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000, ssl_context=('cert.pem', 'key.pem'))
