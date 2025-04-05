@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Meine Kamera</title>
+</head>
+<body>
+  <h2>Live Kamera</h2>
+  <video id="video" autoplay playsinline style="width: 100%; max-width: 800px;"></video>
+  <script>
+    const video = document.getElementById('video');
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        setInterval(() => {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0);
+          const data = canvas.toDataURL('image/jpeg');
+          fetch('/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'frame=' + encodeURIComponent(data)
+          });
+        }, 100);
+      })
+      .catch(console.error);
+  </script>
+</body>
+</html>
