@@ -5,14 +5,17 @@ import numpy as np
 from urllib3.exceptions import InsecureRequestWarning
 import urllib3
 
+# Deaktiviere SSL-Warnungen
 urllib3.disable_warnings(InsecureRequestWarning)
 
+# URL für den Server
 UPLOAD_URL = 'https://localhost:5000/upload_laptop'
 VIEW_URL = 'https://localhost:5000/phone_feed'
 
 phone_frame = None
 frame_lock = threading.Lock()
 
+# Funktion zum Abrufen des Phone-Streams
 def fetch_phone_stream():
     global phone_frame
     stream = requests.get(VIEW_URL, stream=True, verify=False)
@@ -28,12 +31,12 @@ def fetch_phone_stream():
             with frame_lock:
                 phone_frame = img
 
-# Starte Stream-Download-Thread
+# Starte den Streaming-Thread für den Empfang
 threading.Thread(target=fetch_phone_stream, daemon=True).start()
 
-# Lokale Kamera öffnen
+# Öffne die Kamera des Laptops
 cap = cv2.VideoCapture(0)
-cap.set(cv2.CAP_PROP_FPS, 35)
+cap.set(cv2.CAP_PROP_FPS, 60)  # Ziel FPS auf 60 setzen
 
 while True:
     ret, frame = cap.read()

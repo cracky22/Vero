@@ -4,7 +4,7 @@ import time
 
 app = Flask(__name__)
 
-# Speicher für beide Streams
+# Shared frame storage
 laptop_frame = None
 phone_frame = None
 laptop_lock = Lock()
@@ -31,13 +31,17 @@ def upload_phone():
     return "OK", 200
 
 def generate_stream(get_frame_func, lock):
+    target_delay = 1 / 60  # 60 FPS
     while True:
+        start = time.time()
         with lock:
             frame = get_frame_func()
         if frame:
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-        time.sleep(1 / 35)  # Ziel: 35 FPS
+        elapsed = time.time() - start
+        sleep_time = max(0, target_delay - elapsed)
+        time.sleep(sleep_time)
 
 @app.route('/laptop_feed')
 def laptop_feed():
@@ -50,4 +54,12 @@ def phone_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, threaded=True, ssl_context=('cert.pem', 'key.pem'))
+    from multiprocessing import cpu_count
+    from ssl import SSLContext, PROTOCOL_TLSv1_2
+    from OpenSSL import SSL
+    # Create SSL context
+    context = SSLContext(PROTOCOL_TLSv1_2)
+    context.load_cert_chain(certfile='cert.pem', keyfile='key.pem')
+    
+    # Flask run with SSL enabled
+    app.run(host='0.0.0.0', port=5000, ssl_context=context, threaded=True)
